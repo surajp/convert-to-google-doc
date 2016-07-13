@@ -34,16 +34,19 @@ function isReadableStream (obj) {
 }
 
 // If modifying these scopes, delete your previously saved credentials
-// at ~/.credentials/drive-nodejs-quickstart.json
+// at ~/.creds/gToken.json
 var SCOPES = ['https://www.googleapis.com/auth/drive'];
-var TOKEN_DIR = 'F:\\Projects\\Git\\converttogoogledoc\\creds\\';
-var TOKEN_PATH = TOKEN_DIR + 'drive-nodejs-quickstart.json';
+var BASE_DIR=(process.env.HOME||'C:\\Windows\\temp')+'\\';
+var TOKEN_DIR = BASE_DIR+'creds\\';
+var TOKEN_PATH = TOKEN_DIR + 'gToken.json';
 //console.log(TOKEN_PATH);
 console.log('Converting....');
 // Load client secrets from a local file.
-fs.readFile('F:\\Projects\\Git\\converttogoogledoc\\client_secret.json', function processClientSecrets(err, content) {
+fs.readFile(BASE_DIR+'client_secret.json', function processClientSecrets(err, content) {
   if (err) {
     console.log('Error loading client secret file: ' + err);
+    console.log('Please download and copy client_secret.json to your HOME folder'); 
+    setTimeout(function(){},5000);
     return;
   }
   // Authorize a client with the loaded credentials, then call the
@@ -51,7 +54,6 @@ fs.readFile('F:\\Projects\\Git\\converttogoogledoc\\client_secret.json', functio
  // authorize(JSON.parse(content), listFiles);
   authorize(JSON.parse(content), listFiles);
 });
-
 /**
  * Create an OAuth2 client with the given credentials, and then execute the
  * given callback function.
@@ -92,6 +94,7 @@ function getNewToken(oauth2Client, callback) {
   });
   console.log('Authorize this app by visiting this url: ', authUrl);
   ncp.copy(authUrl);
+  console.log('The url has already been copied to your clipboard for your convenience');
   var rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout

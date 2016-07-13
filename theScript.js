@@ -7,24 +7,41 @@ var readline = require('readline');
 var google = require('googleapis');
 var googleAuth = require('google-auth-library');
 var stream = require('stream');
+var ws=require('windows-shortcuts');
+var args=process.argv.slice(2);
+if(args.length==0){
+	console.log('Enter a file path');
+	process.exit();
+}
+var driveFolderName='GConvert';
 
+var mtMap = {'xls':'application/vnd.google-apps.spreadsheet','xlsx':'application/vnd.google-apps.spreadsheet','doc':'application/vnd.google-apps.document','docx':'application/vnd.google-apps.document','txt':'text/plain'};
 
+var filePath = args[0];
+var fileName=filePath.substring(filePath.lastIndexOf('\\')+1);
+var fileExtension=fileName.replace(/^.*\.(.*)$/,"$1");
+var fileMainName=fileName.replace(/\.(.*)?$/,'');
+/*
+console.log('>>> filePath '+filePath);
+console.log('>> fileName '+fileName);
+console.log('>> fileExtnesion '+fileExtension);
+console.log('fileMainName '+fileMainName);
+*/
 function isReadableStream (obj) {
   return obj instanceof stream.Stream &&
     typeof obj._read === 'function' &&
     typeof obj._readableState === 'object';
 }
 
-
 // If modifying these scopes, delete your previously saved credentials
 // at ~/.credentials/drive-nodejs-quickstart.json
 var SCOPES = ['https://www.googleapis.com/auth/drive'];
-var TOKEN_DIR = 'creds/';
+var TOKEN_DIR = 'F:\\Projects\\Git\\converttogoogledoc\\creds\\';
 var TOKEN_PATH = TOKEN_DIR + 'drive-nodejs-quickstart.json';
-console.log(TOKEN_PATH);
-
+//console.log(TOKEN_PATH);
+console.log('Converting....');
 // Load client secrets from a local file.
-fs.readFile('client_secret.json', function processClientSecrets(err, content) {
+fs.readFile('F:\\Projects\\Git\\converttogoogledoc\\client_secret.json', function processClientSecrets(err, content) {
   if (err) {
     console.log('Error loading client secret file: ' + err);
     return;
@@ -32,7 +49,7 @@ fs.readFile('client_secret.json', function processClientSecrets(err, content) {
   // Authorize a client with the loaded credentials, then call the
   // Drive API.
  // authorize(JSON.parse(content), listFiles);
-  authorize(JSON.parse(content), insertFile);
+  authorize(JSON.parse(content), listFiles);
 });
 
 /**
@@ -118,6 +135,7 @@ function storeToken(token) {
 function listFiles(auth) {
   var service = google.drive('v3');
   service.files.list({
+    q:"name='"+driveFolderName+"'",
     auth: auth,
     pageSize: 10,
     fields: "nextPageToken, files(id, name)"
@@ -129,46 +147,66 @@ function listFiles(auth) {
     var files = response.files;
     if (files.length == 0) {
       console.log('No files found.');
+      createFolder(auth);
     } else {
-      console.log('Files:');
-      for (var i = 0; i < files.length; i++) {
+   /*   for (var i = 0; i < files.length; i++) {
         var file = files[i];
         console.log('%s (%s)', file.name, file.id);
-      }
+      }*/
+      insertFile(auth,files[0].id);
     }
   });
 }
+function createFolder(auth){
+	var service=google.drive('v3');
+	service.files.create({
+		auth: auth,
+		resource:{
+			'name':driveFolderName,
+			'mimeType':'application/vnd.google-apps.folder'
+		},
+		fields:'id'
+	},function(err,file){
+		if(err){
+			console.log('Could not create folder '+err);
+			insertFile(auth,'');
+		}
+		else
+			insertFile(auth,file.id);
+	});
+}
 
-function insertFile(auth) {
-    var service=google.drive('v3');
-    console.log(service.files.create);
-    fs.readFile('D:\\Downloads\\WindStream_-_NetEx-2016-02-02\\Email Distribution Rules 7-6-2016 V1.docx','utf8',function (err,content) {
-        console.log('Readable stream?? '+isReadableStream(content));
+function insertFile(auth,pFolderId) {
+        var service=google.drive('v3');
         service.files.create({
             auth: auth,
-            convert:true,
-            uploadType:'media',
-            title:'EmailRules.docx',
-            mediaUrl:'https://www.googleapis.com/upload/drive/v3/files',
-            
-            headers:{
-                'Content-Type':'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            },
+	    fields:'id,webViewLink',
+            resource:{
+//		   mimeType:'application/vnd.google-apps.document',
+		   mimeType:mtMap[fileExtension]||'application/octet-stream',
+		   name:fileName,
+		   parents:[pFolderId]
+	    },
+	    mediaUrl:'https://www.googleapis.com/upload/drive/v3/files',
             media:{
-                mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                body:content,
-                name:'EmailRules.docx',
-                title:'EmailRules.docx',
-                originalFilename:'EmailRules.docx'
+//                mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                body:fs.createReadStream(filePath)
             }
         },function (err,resp) {
            if(err){
                console.log('An error occured '+err);
            }else{
-               console.log('upload succeeded '+resp);
+               console.log('upload succeeded');
                console.log(JSON.stringify(resp));
+//		ncp.copy(resp.webViewLink);
+		ws.create(fileMainName+'.g'+fileExtension+'.lnk',
+			{target:'chrome.exe',args: '--app="'+resp.webViewLink+'"',runStyle:ws.MIN},
+			function(err){
+				if(err)
+					console.log('An eror occured '+err);
+			}); 
            } 
         });
 
-    });
 }
+

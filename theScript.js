@@ -7,6 +7,7 @@ var readline = require('readline');
 var google = require('googleapis');
 var ws=require('windows-shortcuts');
 var child_process=require('child_process');
+var path=require('path');
 var args=process.argv.slice(2);
 if(args.length==0){
 	console.log('Enter a file path');
@@ -14,7 +15,7 @@ if(args.length==0){
 }
 var driveFolderName='GConvert';
 
-var mtMap = {'xls':'application/vnd.google-apps.spreadsheet','xlsx':'application/vnd.google-apps.spreadsheet','doc':'application/vnd.google-apps.document','docx':'application/vnd.google-apps.document','pptx':'application/vnd.google-apps.presentation','ppt':'application/vnd.google-apps.presentation','txt':'text/plain'};
+var mtMap = {'xls':'application/vnd.google-apps.spreadsheet','xlsx':'application/vnd.google-apps.spreadsheet','csv':'application/vnd.google-apps.spreadsheet','doc':'application/vnd.google-apps.document','docx':'application/vnd.google-apps.document','pptx':'application/vnd.google-apps.presentation','ppt':'application/vnd.google-apps.presentation','txt':'text/plain'};
 
 var filePath = args[0];
 var fileName=filePath.substring(filePath.lastIndexOf('\\')+1);
@@ -27,19 +28,26 @@ console.log('>> fileExtnesion '+fileExtension);
 console.log('fileMainName '+fileMainName);
 */
 
+function getUserHome() {
+  return process.env[(process.platform == 'win32') ? 'USERPROFILE' : 'HOME'];
+}
+
 // If modifying these scopes, delete your previously saved credentials
 // at ~/creds/gToken.json
 var SCOPES = ['https://www.googleapis.com/auth/drive'];
-var BASE_DIR=(process.env.HOME||'C:\\Windows\\temp')+'\\';
+var BASE_DIR=getUserHome()+'\\';
 var TOKEN_DIR = BASE_DIR+'creds\\';
 var TOKEN_PATH = TOKEN_DIR + 'gToken.json';
 //console.log(TOKEN_PATH);
+
+
+
 console.log('Converting....');
 // Load client secrets from a local file.
-fs.readFile(BASE_DIR+'client_secret.json', function processClientSecrets(err, content) {
+fs.readFile(path.resolve(__dirname,'client_id.json'), function processClientSecrets(err, content) {
   if (err) {
     console.log('Error loading client secret file: ' + err);
-    console.log('Please download and copy client_secret.json to your HOME folder'); 
+    console.log('Please copy client_id.json to the same folder as your script'); 
     setTimeout(function(){},5000);
     return;
   }
@@ -48,6 +56,7 @@ fs.readFile(BASE_DIR+'client_secret.json', function processClientSecrets(err, co
  // authorize(JSON.parse(content), listFiles);
   authorize(JSON.parse(content), listFiles);
 });
+
 /**
  * Create an OAuth2 client with the given credentials, and then execute the
  * given callback function.

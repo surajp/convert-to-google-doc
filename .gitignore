@@ -1,4 +1,3 @@
 node_modules/
 creds/
 *.swp
-client_secret.json

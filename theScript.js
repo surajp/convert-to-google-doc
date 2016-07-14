@@ -198,7 +198,7 @@ function insertFile(auth,pFolderId) {
 	    fields:'id,webViewLink',
             resource:{
 //		   mimeType:'application/vnd.google-apps.document',
-		   mimeType:mtMap[fileExtension]||'application/octet-stream',
+		   mimeType:mtMap[fileExtension]||'',
 		   name:fileName,
 		   parents:[pFolderId]
 	    },

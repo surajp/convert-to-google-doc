@@ -5,9 +5,8 @@ var ncp=require('copy-paste');
 var fs = require('fs');
 var readline = require('readline');
 var google = require('googleapis');
-var googleAuth = require('google-auth-library');
-var stream = require('stream');
 var ws=require('windows-shortcuts');
+var child_process=require('child_process');
 var args=process.argv.slice(2);
 if(args.length==0){
 	console.log('Enter a file path');
@@ -15,26 +14,21 @@ if(args.length==0){
 }
 var driveFolderName='GConvert';
 
-var mtMap = {'xls':'application/vnd.google-apps.spreadsheet','xlsx':'application/vnd.google-apps.spreadsheet','doc':'application/vnd.google-apps.document','docx':'application/vnd.google-apps.document','txt':'text/plain'};
+var mtMap = {'xls':'application/vnd.google-apps.spreadsheet','xlsx':'application/vnd.google-apps.spreadsheet','doc':'application/vnd.google-apps.document','docx':'application/vnd.google-apps.document','pptx':'application/vnd.google-apps.presentation','ppt':'application/vnd.google-apps.presentation','txt':'text/plain'};
 
 var filePath = args[0];
 var fileName=filePath.substring(filePath.lastIndexOf('\\')+1);
 var fileExtension=fileName.replace(/^.*\.(.*)$/,"$1");
-var fileMainName=fileName.replace(/\.(.*)?$/,'');
+var fileMainName=filePath.replace(/\.(.*)?$/,'');
 /*
 console.log('>>> filePath '+filePath);
 console.log('>> fileName '+fileName);
 console.log('>> fileExtnesion '+fileExtension);
 console.log('fileMainName '+fileMainName);
 */
-function isReadableStream (obj) {
-  return obj instanceof stream.Stream &&
-    typeof obj._read === 'function' &&
-    typeof obj._readableState === 'object';
-}
 
 // If modifying these scopes, delete your previously saved credentials
-// at ~/.creds/gToken.json
+// at ~/creds/gToken.json
 var SCOPES = ['https://www.googleapis.com/auth/drive'];
 var BASE_DIR=(process.env.HOME||'C:\\Windows\\temp')+'\\';
 var TOKEN_DIR = BASE_DIR+'creds\\';
@@ -65,8 +59,7 @@ function authorize(credentials, callback) {
   var clientSecret = credentials.installed.client_secret;
   var clientId = credentials.installed.client_id;
   var redirectUrl = credentials.installed.redirect_uris[0];
-  var auth = new googleAuth();
-  var oauth2Client = new auth.OAuth2(clientId, clientSecret, redirectUrl);
+  var oauth2Client = new google.auth.OAuth2(clientId, clientSecret, redirectUrl);
 
   // Check if we have previously stored a token.
   fs.readFile(TOKEN_PATH, function(err, token) {
@@ -131,7 +124,7 @@ function storeToken(token) {
 }
 
 /**
- * Lists the names and IDs of up to 10 files.
+ * Check whether the folder we are looking for to store the files, exist. If not call createFolder. 
  *
  * @param {google.auth.OAuth2} auth An authorized OAuth2 client.
  */
@@ -160,6 +153,11 @@ function listFiles(auth) {
     }
   });
 }
+/**
+ * Create the folder to store the converted files in your root folder (My Drive) on Google Drive 
+ * 
+ */ 
+
 function createFolder(auth){
 	var service=google.drive('v3');
 	service.files.create({
@@ -179,6 +177,11 @@ function createFolder(auth){
 	});
 }
 
+/**
+ * Upload the selected file to drive, convert it if applicable,create a shortcut to the file in the same folder and open the file
+ *
+ *
+ */
 function insertFile(auth,pFolderId) {
         var service=google.drive('v3');
         service.files.create({
@@ -207,6 +210,8 @@ function insertFile(auth,pFolderId) {
 			function(err){
 				if(err)
 					console.log('An eror occured '+err);
+				else
+					child_process.execFile('chrome.exe',["--app="+resp.webViewLink]);
 			}); 
            } 
         });
